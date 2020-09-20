@@ -1,0 +1,14 @@
+# Mac files
+.DS_Store
+
+#python
+__pycache__/
+
+#VS code dotfiles
+.vscode/
+
+#Large data files
+dataset/
+
+#Python virtual environment
+venv
