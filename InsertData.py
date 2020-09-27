@@ -68,13 +68,12 @@ class GeolifeProgram:
 
     def create_activity_table(self):
         query = """CREATE TABLE IF NOT EXISTS Activity (
-                    id INT NOT NULL,
+                    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
                     user_id VARCHAR(3),
                     transportation_mode VARCHAR(30),
                     start_date_time DATETIME,
                     end_date_time DATETIME,
-                    foreign key (user_id) references User(id),
-                    CONSTRAINT pk_activity PRIMARY KEY (id, user_id))
+                    foreign key (user_id) references User(id))
                 """
         self.cursor.execute(query)
         self.db_connection.commit()
@@ -84,19 +83,23 @@ class GeolifeProgram:
         for (user_id, activity_list) in self.activity_data.items():
             print("Queries finished: " + str(count) + "/181")
             count += 1
-            print(user_id, len(activity_list))
-            for i in range(0, len(activity_list)):
-                tm = 'NULL'  # Transportation mode is null if user data is not labeled
-                try:  # try/except block to handle special case where not all user data is labeled, e.g. 067
-                    if (self.user_ids.get(user_id)):  # Only true for labeled user_ids
-                        tm = self.get_transportation_mode(user_id, i)  # Get transportation mode if labeled
-                except Exception:
-                    tm = 'NULL'
-                    continue
-                query = "INSERT INTO Activity (id, user_id, transportation_mode, start_date_time, end_date_time) VALUES ('%s', '%s', '%s', '%s')"
-                self.cursor.execute(query % (i, user_id, tm, self.find_start_end_times(
-                    user_id, i)[0], self.find_start_end_times(user_id, i)[1]))
+            print("Length: ", len(activity_list))
+            if (len(activity_list) > 0):
+                for counter, activity in enumerate(activity_list):
+                    query = "INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES ('%s', '%s', '%s', '%s')"
+                    self.cursor.execute(
+                        query % (user_id, activity[0][2], activity[0][5] + " " + activity[0][6], activity[-1][5] + " " + activity[-1][6]))
         self.db_connection.commit()
+
+    # def reformat_time(date, time):
+    #     year = date[:4]
+    #     month = date[4:6]
+    #     day = date[6:8]
+    #     hour = time[8:10]
+    #     min = time[10:12]
+    #     sec = time[12:14]
+    #     formated_time = year + "-" + month + "-" + day + " " + hour + ":" + min + ":" + sec
+    #     return formated_time
 
     def create_trackpoint_table(self):
         query = """CREATE TABLE IF NOT EXISTS TrackPoint (
@@ -122,12 +125,13 @@ class GeolifeProgram:
 #            ]
 # }
 
+
     def generate_activity_data(self):
         number_of_labels = 0
         for user in self.user_ids.keys():
             print(user)
+            activity_list = []
             for root, dirs, files in os.walk('./dataset/dataset/Data/' + user):
-                activity_list = []
                 for name in files:
                     tm = False
                     if (name != '.DS_Store' and name != 'labels.txt'):
@@ -136,33 +140,21 @@ class GeolifeProgram:
                             if (self.labeled_data.get(user)):
                                 act_data = self.labeled_data.get(user)
                                 for line in act_data:
-
                                     if name.replace(".plt", "") == line[0]:
-                                        print("Found label")
                                         number_of_labels += 1
-                                        print(number_of_labels)
+                                        print("Found label, label count is now", number_of_labels)
                                         tm = line[2]
-                                activity_list.append(np.genfromtxt(root + '/' + name,
-                                                                   skip_header=6,
-                                                                   delimiter=',',
-                                                                   usecols=(0, 1, 2, 3, 4, 5, 6),
-                                                                   converters={2: (lambda x: tm if tm else "NULL"),
-                                                                               3: (lambda x: int(x) if isinstance(x, int) else float(x)),
-                                                                               5: (lambda x: str(x.decode("utf-8"))),
-                                                                               6: (lambda x: str(x.decode('utf-8')))},  # max_rows=2500 removed due to causing wrong calculations
-                                                                   ).tolist())
-                        else:
-                            if(not(num_lines > 2506)):  # first six rows are bullshit and limit is 2500 rows of trackpoint-data
-                                activity_list.append(np.genfromtxt(root + '/' + name,
-                                                                   skip_header=6,
-                                                                   delimiter=',',
-                                                                   usecols=(0, 1, 2, 3, 4, 5, 6),
-                                                                   converters={2: (lambda x: tm if tm else "NULL"),
-                                                                               3: (lambda x: int(x) if isinstance(x, int) else float(x)),
-                                                                               5: (lambda x: str(x.decode("utf-8"))),
-                                                                               6: (lambda x: str(x.decode('utf-8')))},  # max_rows=2500 removed due to causing wrong calculations
-                                                                   ).tolist())
-                self.activity_data[user] = activity_list
+
+                            activity_list.append(np.genfromtxt(root + '/' + name,
+                                                               skip_header=6,
+                                                               delimiter=',',
+                                                               usecols=(0, 1, 2, 3, 4, 5, 6),
+                                                               converters={2: (lambda x: tm if tm else "NULL"),
+                                                                           3: (lambda x: int(x) if isinstance(x, int) else float(x)),
+                                                                           5: (lambda x: str(x.decode("utf-8"))),
+                                                                           6: (lambda x: str(x.decode('utf-8')))},  # max_rows=2500 removed due to causing wrong calculations
+                                                               ).tolist())  # tolist for å slippe å styre med npliste
+            self.activity_data[user] = activity_list
         print("Finished collecting user data from file system ")
 
     def write_activity_data_to_json(self):
@@ -186,32 +178,13 @@ class GeolifeProgram:
             self.activity_data.get(user_id)[activity_number][-1][5]
         return (start, end)
 
-    def update_transportation_mode(self):
-        count = 0
-        for pair in self.labeled_data.items():
-            count += 1
-            print("Query " + str(count) + ' / ' + str(len(self.labeled_data)) + " finished...")
-            for row in pair[1]:
-                try:
-                    start_time, end_time, transport_mode = row
-                except Exception as e:
-                    start_time, end_time, transport_mode = pair[1]
-                    print("Except: ", start_time)
-                    continue
-                query = """UPDATE Activity
-                            SET transportation_mode = '%s'
-                            WHERE start_date_time = '%s' AND end_date_time = '%s' AND user_id = '%s'
-                        """
-                self.cursor.execute(query % (transport_mode, start_time, end_time, pair[0]))
-                print(query % (transport_mode, start_time, end_time, pair[0]))
-            self.db_connection.commit()
-
 
 # labeled_data = {
 #   user_id : [
 #       [start_time, end_time, transportation_mode]
 # ]
 # }
+
 
     def generate_labeled_data(self):
         for root, dirs, files in os.walk("./dataset/dataset/Data", topdown=True):
@@ -238,14 +211,6 @@ class GeolifeProgram:
                                                                            "").replace(":", ""), data[i][1], data[i][2])
                         self.labeled_data[name] = data
 
-    def get_transportation_mode(self, user_id, activity_number):
-        modes = ['walk', 'taxi', 'car', 'airplane', 'bike', 'subway', 'bus', 'train', 'other']
-        for pair in self.labeled_data.items():
-            if pair[0] == user_id:
-                if (len(pair[1]) == 3 and pair[1][2] in modes):  # If only one line in labels.txt, handle special case
-                    return pair[1][2]
-                return pair[1][activity_number][2]
-
 
 def main():
     program = None
@@ -261,20 +226,17 @@ def main():
         # program.insert_user_data()  # Insert id and has_labels
         print("Generating labeled data...")
         program.generate_labeled_data()
-        print("Generating activity data...")
+        # print("Generating activity data...")
         # program.generate_activity_data()
 
         program.load_activity_data_from_json()
 
-        for line in program.activity_data.get("067"):
-            print("Lengde på line: ", len(line))
-            print(line[0][2])
-        print("Lengde på activity_data(067):", len(program.activity_data.get("067")))
-
         # print(program.activity_data.get("105"))
+        # print("Writing data to JSON...")
         # program.write_activity_data_to_json()
-        # program.create_activity_table()
-        # program.insert_activity_data()
+        program.create_activity_table()
+        program.create_trackpoint_table()
+        program.insert_activity_data()
         # print(program.get_transportation_mode('059', 1))
         # print(program.get_transportation_mode('067', 1))
         # print(program.get_transportation_mode('106', 1))
