@@ -6,6 +6,7 @@ import numpy as np
 import datetime
 import json
 import _pickle as pickle
+import datetime
 
 
 class GeolifeProgram:
@@ -86,7 +87,10 @@ class GeolifeProgram:
             print("Length: ", len(activity_list))
             if (len(activity_list) > 0):
                 for counter, activity in enumerate(activity_list):
-                    query = "INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time) VALUES ('%s', '%s', '%s', '%s')"
+                    query = """
+                    INSERT INTO Activity (user_id, transportation_mode, start_date_time, end_date_time)
+                    VALUES ('%s', '%s', '%s', '%s')
+                    """
                     self.cursor.execute(
                         query % (user_id, activity[0][2], activity[0][5] + " " + activity[0][6], activity[-1][5] + " " + activity[-1][6]))
         self.db_connection.commit()
@@ -115,7 +119,45 @@ class GeolifeProgram:
         self.cursor.execute(query)
         self.db_connection.commit()
 
+    # activity_list = [
+    #   activity = [
+    #       trackpoint = ()
+    # ]
+    # ]
 
+    def insert_trackpoint_data(self):
+        for user_id, activity_list in self.activity_data.items():
+            query = "SELECT * FROM Activity WHERE user_id = '" + user_id + "';"
+            self.cursor.execute(query)
+            records = self.cursor.fetchall()
+            print("User ID: ", user_id)
+            print("Activity_list Length: ", len(activity_list))
+            print("Record length: ", len(records))
+            for row in records:
+                act_counter = 0
+                for activity in activity_list:
+                    act_counter += 1
+                    print(act_counter)
+                    for trackpoint in activity:
+                        activity_id = row[0]
+                        lat = trackpoint[0]
+                        lon = trackpoint[1]
+                        altitude = int(trackpoint[3])
+                        date_days = trackpoint[4]
+                        date_time = str(trackpoint[5] + " " + trackpoint[6])
+                        insert_query = """INSERT INTO TrackPoint
+                                            (activity_id, lat, lon, altitude, date_days, date_time)
+                                            VALUES (%s, %s, %s, %s, %s, '%s')
+                                        """
+                        self.cursor.execute(insert_query % (activity_id, lat, lon, altitude, date_days, date_time))
+
+        self.db_connection.commit()
+
+    def parse_datetime_to_string(self, datetime):
+        new_string = ""
+        for char in datetime:
+            new_string += char
+        return new_string
 # activity_data = {
 #   user_id: activity_list = [
 #               [lat, lon, null, alt, number_of_days_fractional, date_as_string, time_as_string],
@@ -125,9 +167,9 @@ class GeolifeProgram:
 #            ]
 # }
 
-
     def generate_activity_data(self):
         number_of_labels = 0
+        activity_id = 0
         for user in self.user_ids.keys():
             print(user)
             activity_list = []
@@ -185,7 +227,6 @@ class GeolifeProgram:
 # ]
 # }
 
-
     def generate_labeled_data(self):
         for root, dirs, files in os.walk("./dataset/dataset/Data", topdown=True):
             for name in dirs:
@@ -224,19 +265,21 @@ def main():
         # program.print_user_ids()  # Control method to check data is correct ex ('000', False)
         # program.create_user_table()  # Create User table with columns (id, has_labels)
         # program.insert_user_data()  # Insert id and has_labels
-        print("Generating labeled data...")
-        program.generate_labeled_data()
+        # print("Generating labeled data...")
+        # program.generate_labeled_data()
         # print("Generating activity data...")
         # program.generate_activity_data()
-
+        print("Loading from JSON...")
         program.load_activity_data_from_json()
+        print("Inserting TrackPoints to DB")
+        program.insert_trackpoint_data()
 
         # print(program.activity_data.get("105"))
         # print("Writing data to JSON...")
         # program.write_activity_data_to_json()
-        program.create_activity_table()
-        program.create_trackpoint_table()
-        program.insert_activity_data()
+        # program.create_activity_table()
+        # program.create_trackpoint_table()
+        # program.insert_activity_data()
         # print(program.get_transportation_mode('059', 1))
         # print(program.get_transportation_mode('067', 1))
         # print(program.get_transportation_mode('106', 1))
