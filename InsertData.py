@@ -21,23 +21,23 @@ class GeolifeProgram:
         self.labeled_data = {}
         self.transportation_modes = ['walk', 'taxi', 'car', 'airplane', 'bike', 'subway', 'bus', 'train', 'other']
 
+
     def create_table(self, table_name):
         query = """CREATE TABLE IF NOT EXISTS %s (
                    id VARCHAR AUTO_INCREMENT NOT NULL PRIMARY KEY
                 """
-        # This adds table_name to the %s variable and executes the query
         self.cursor.execute(query % table_name)
         self.db_connection.commit()
+
 
     def load_labeled_ids(self):
         f = open('./dataset/dataset/labeled_ids.txt', 'r')
         for labeled_id in f:
             self.labeled_ids.append(labeled_id.split('\n')[0])
 
+
     def generate_user_ids(self, source_folder):
         for root, dirs, files in os.walk(source_folder, topdown=True):
-            # for name in files:
-            #     print(os.path.join(root, name))
             ids = []
             for name in dirs:
                 if name != "Trajectory" and name != "Data":
@@ -49,23 +49,26 @@ class GeolifeProgram:
                     has_label = True
                 self.user_ids[id] = has_label
 
+
     def print_user_ids(self):
         for pair in self.user_ids.items():
             print(pair)
+
 
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS User (
                    id VARCHAR(3) NOT NULL PRIMARY KEY, has_labels BOOLEAN NOT NULL)
                 """
-        # This adds table_name to the %s variable and executes the query
         self.cursor.execute(query)
         self.db_connection.commit()
+
 
     def insert_user_data(self):
         for pair in self.user_ids.items():
             query = "INSERT INTO User (id, has_labels) VALUES ('%s', %s)"
             self.cursor.execute(query % (pair[0], pair[1]))
             self.db_connection.commit()
+
 
     def create_activity_table(self):
         query = """CREATE TABLE IF NOT EXISTS Activity (
@@ -78,6 +81,7 @@ class GeolifeProgram:
                 """
         self.cursor.execute(query)
         self.db_connection.commit()
+
 
     def insert_activity_data(self):
         count = 0
@@ -95,15 +99,6 @@ class GeolifeProgram:
                         query % (user_id, activity[0][2], activity[0][5] + " " + activity[0][6], activity[-1][5] + " " + activity[-1][6]))
         self.db_connection.commit()
 
-    # def reformat_time(date, time):
-    #     year = date[:4]
-    #     month = date[4:6]
-    #     day = date[6:8]
-    #     hour = time[8:10]
-    #     min = time[10:12]
-    #     sec = time[12:14]
-    #     formated_time = year + "-" + month + "-" + day + " " + hour + ":" + min + ":" + sec
-    #     return formated_time
 
     def create_trackpoint_table(self):
         query = """CREATE TABLE IF NOT EXISTS TrackPoint (
@@ -119,59 +114,31 @@ class GeolifeProgram:
         self.cursor.execute(query)
         self.db_connection.commit()
 
-    # activity_list = [
-    #   activity = [
-    #       trackpoint = ()
-    # ]
-    # ]
 
     def insert_trackpoint_data(self):
         for user_id, activity_list in self.activity_data.items():
             query = "SELECT * FROM Activity WHERE user_id = '" + user_id + "';"
             self.cursor.execute(query)
             records = self.cursor.fetchall()
-            print("User ID: ", user_id)
-            print("Activity_list Length: ", len(activity_list))
-            print("Record length: ", len(records))
-            for row in records:
-                act_counter = 0
-                for activity in activity_list:
-                    act_counter += 1
-                    print(act_counter)
-                    for trackpoint in activity:
-                        activity_id = row[0]
-                        lat = trackpoint[0]
-                        lon = trackpoint[1]
-                        altitude = int(trackpoint[3])
-                        date_days = trackpoint[4]
-                        date_time = str(trackpoint[5] + " " + trackpoint[6])
-                        insert_query = """INSERT INTO TrackPoint
-                                            (activity_id, lat, lon, altitude, date_days, date_time)
-                                            VALUES (%s, %s, %s, %s, %s, '%s')
-                                        """
-                        self.cursor.execute(insert_query % (activity_id, lat, lon, altitude, date_days, date_time))
+            for index, activity in enumerate(activity_list):
+                for trackpoint in activity:
+                    activity_id = records[index][0]
+                    lat = trackpoint[0]
+                    lon = trackpoint[1]
+                    altitude = int(trackpoint[3])
+                    date_days = trackpoint[4]
+                    date_time = str(trackpoint[5] + " " + trackpoint[6])
+                    insert_query = """INSERT INTO TrackPoint
+                                        (activity_id, lat, lon, altitude, date_days, date_time)
+                                        VALUES (%s, %s, %s, %s, %s, '%s')
+                                    """
+                    self.cursor.execute(insert_query % (activity_id, lat, lon, altitude, date_days, date_time))
+            self.db_connection.commit()
 
-        self.db_connection.commit()
-
-    def parse_datetime_to_string(self, datetime):
-        new_string = ""
-        for char in datetime:
-            new_string += char
-        return new_string
-# activity_data = {
-#   user_id: activity_list = [
-#               [lat, lon, null, alt, number_of_days_fractional, date_as_string, time_as_string],
-#               [lat, lon, null, alt, number_of_days_fractional, date_as_string, time_as_string],
-#           ...,
-#               [lat, lon, null, alt, number_of_days_fractional, date_as_string, time_as_string]
-#            ]
-# }
 
     def generate_activity_data(self):
         number_of_labels = 0
-        activity_id = 0
         for user in self.user_ids.keys():
-            print(user)
             activity_list = []
             for root, dirs, files in os.walk('./dataset/dataset/Data/' + user):
                 for name in files:
@@ -184,7 +151,6 @@ class GeolifeProgram:
                                 for line in act_data:
                                     if name.replace(".plt", "") == line[0]:
                                         number_of_labels += 1
-                                        print("Found label, label count is now", number_of_labels)
                                         tm = line[2]
 
                             activity_list.append(np.genfromtxt(root + '/' + name,
@@ -199,9 +165,11 @@ class GeolifeProgram:
             self.activity_data[user] = activity_list
         print("Finished collecting user data from file system ")
 
+
     def write_activity_data_to_json(self):
         with open('activity_data.json', 'w') as file:
             json.dump(self.activity_data, file, sort_keys=True)
+
 
     def load_activity_data_from_json(self):
         with open('activity_data.json') as json_file:
@@ -210,22 +178,6 @@ class GeolifeProgram:
             print("Finished loading data from JSON file")
             # print(self.activity_data.get('181')[0])
 
-    def find_start_end_times(self, user_id, activity_number):
-        # First trackpoint in activity
-
-        start = self.activity_data.get(user_id)[activity_number][0][4] + ' ' + \
-            self.activity_data.get(user_id)[activity_number][0][5]
-        # Last trackpoint in activity
-        end = self.activity_data.get(user_id)[activity_number][-1][4] + ' ' + \
-            self.activity_data.get(user_id)[activity_number][-1][5]
-        return (start, end)
-
-
-# labeled_data = {
-#   user_id : [
-#       [start_time, end_time, transportation_mode]
-# ]
-# }
 
     def generate_labeled_data(self):
         for root, dirs, files in os.walk("./dataset/dataset/Data", topdown=True):
