@@ -74,6 +74,15 @@ class QueryOperator:
         res = self.cursor.fetchall()
         print(tabulate(res, ["Year with most activities", "nrActivities"]))
 
+    def query11(self):
+        query = """SELECT user_id, transportation_mode, count(transportation_mode) as count 
+        FROM Activity 
+        WHERE transportation_mode IS NOT NULL 
+        GROUP BY user_id, transportation_mode
+        ORDER BY user_id, count DESC""" 
+        #får dataen jeg trenger sortert for å kunne se det manuelt, 
+        # men ikke funnet en måte å hente ut tm med høyest count per user_id
+
 
     def main(self):
         # self.query1()
