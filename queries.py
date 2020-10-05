@@ -63,7 +63,7 @@ class QueryOperator:
         print("Query 5: Transportation mode and number of activities with this transportation mode")
         print(tabulate(res, ["Transportation mode", "#Activity"]))
 
-    def query6(self):
+    def query6a(self):
         query = """SELECT EXTRACT(YEAR FROM start_date_time) AS years, COUNT(*) AS nrActivities 
         FROM Activity 
         WHERE EXTRACT(YEAR FROM start_date_time) >= 2000
@@ -74,6 +74,18 @@ class QueryOperator:
         res = self.cursor.fetchall()
         print(tabulate(res, ["Year with most activities", "nrActivities"]))
 
+    def query6b(self):
+        query = """SELECT EXTRACT(YEAR FROM start_date_time) AS activity_year, SUM(TIMESTAMPDIFF(HOUR, start_date_time, end_date_time)) AS hours
+        FROM Activity 
+        WHERE EXTRACT(YEAR FROM start_date_time) >= 2000
+        GROUP BY EXTRACT(YEAR FROM start_date_time)
+        ORDER BY hours DESC
+        LIMIT 1"""
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print(tabulate(res, ["Year with most hours in activity", "Hours"]))
+
+
 
     def main(self):
         # self.query1()
@@ -81,7 +93,8 @@ class QueryOperator:
         # self.query3()
         # self.query4()
         # self.query5()
-        # self.query6()
+        # self.query6a()
+        # self.query6b()
 
 
 if __name__ == "__main__":
