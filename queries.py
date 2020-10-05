@@ -52,10 +52,19 @@ class QueryOperator:
         print(tabulate(res, ["Users who have taken a taxi"]))
 
     def query5(self):
-        query = ""
+        query = """SELECT transportation, COUNT(id) AS count 
+            FROM (
+                SELECT transportation_mode as transportation, id FROM Activity 
+                WHERE transportation_mode IS NOT NULL 
+            ) AS alias
+            GROUP BY transportation"""
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print("Query 5: Transportation mode and number of activities with this transportation mode")
+        print(tabulate(res, ["Transportation mode", "#Activity"]))
 
     def query6(self):
-        query = ""
+        query = "" 
 
     def main(self):
         # self.query1()
