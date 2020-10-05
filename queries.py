@@ -1,23 +1,37 @@
 from DbConnector import DbConnector
+from tabulate import tabulate
+from haversine import haversine
 
-class Tasks:
+
+class QueryOperator:
     def __init__(self):
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
-    
-    def query1(self, table_name):
-        query = "SELECT COUNT(*) FROM %s"
-        self.cursor.execute(query % table_name)
-        self.db_connection.commit()
+
+    def query1(self):
+        query = "SELECT count(*) from User"
+        query2 = "SELECT count(*) from Activity"
+        query3 = "SELECT count(*) from TrackPoint"
+        self.cursor.execute(query)
+        response = self.cursor.fetchall()
+        self.cursor.execute(query2)
+        response2 = self.cursor.fetchall()
+        self.cursor.execute(query3)
+        response3 = self.cursor.fetchall()
+        count_results = [response[0][0], response2[0][0], response3[0][0]]
+        print("Users: ", count_results[0])
+        print("Activities: ", count_results[1])
+        print("TrackPoints: ", count_results[2])
 
     def query2(self):
-        query = """SELECT activities.count / users.count 
+        query = """SELECT activities.count / users.count
             FROM
-            (SELECT COUNT(*) AS count FROM Activity) AS activities, 
+            (SELECT COUNT(*) AS count FROM Activity) AS activities,
             (SELECT COUNT(*) AS count FROM User) AS users"""
         self.cursor.execute(query)
-        self.db_connection.commit()
+        res = self.cursor.fetchall()[0][0]
+        print("Average activities per user: ", round(res, 0))
 
     def query3(self):
         query = """SELECT user_id, COUNT(id) AS the_count 
@@ -26,22 +40,34 @@ class Tasks:
             ORDER BY the_count DESC
             LIMIT 20"""
         self.cursor.execute(query)
-        self.db_connection.commit()
+        res = self.cursor.fetchall()
+        print("Top 20 users with highest number of activities")
+        print(tabulate(res, ["UserID", "#Activites"]))
 
     def query4(self):
-        query = """SELECT DISTINCT user_id FROM ACTIVITY 
+        query = """SELECT DISTINCT user_id FROM Activity 
             WHERE transportation_mode = 'taxi'"""
         self.cursor.execute(query)
-        self.db_connection.commit()
+        res = self.cursor.fetchall()
+        print(tabulate(res, ["Users who have taken a taxi"]))
 
-def main():
-    tasks = Tasks()
-    tasks.query1(User) #svaret blir 182
-    tasks.query1(Activity) #svaret blir 16 048
-    tasks.query1(TrackPoint) #svaret blir 9 681 756
-    tasks.query2() #svaret blir 88.1758
-    tasks.query3()
-    tasks.query4()#får ut 20 user_id
+    def query5(self):
+        query = ""
 
-if __name__ == '__main__':
-    main()
+    def query6(self):
+        query = ""
+
+    def main(self):
+        # self.query1()
+        # self.query2()
+        # self.query3()
+        # self.query4()
+        self.query5()
+
+
+if __name__ == "__main__":
+    try:
+        qo = QueryOperator()
+        qo.main()
+    except Exception as e:
+        print(e)
