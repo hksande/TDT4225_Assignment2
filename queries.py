@@ -64,14 +64,24 @@ class QueryOperator:
         print(tabulate(res, ["Transportation mode", "#Activity"]))
 
     def query6(self):
-        query = "" 
+        query = """SELECT EXTRACT(YEAR FROM start_date_time) AS years, COUNT(*) AS nrActivities 
+        FROM Activity 
+        WHERE EXTRACT(YEAR FROM start_date_time) >= 2000
+        GROUP BY years 
+        ORDER BY nrActivities DESC
+        LIMIT 1"""
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print(tabulate(res, ["Year with most activities", "nrActivities"]))
+
 
     def main(self):
         # self.query1()
         # self.query2()
         # self.query3()
         # self.query4()
-        self.query5()
+        # self.query5()
+        # self.query6()
 
 
 if __name__ == "__main__":
