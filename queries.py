@@ -20,9 +20,11 @@ class QueryOperator:
         self.cursor.execute(query3)
         response3 = self.cursor.fetchall()
         count_results = [response[0][0], response2[0][0], response3[0][0]]
+        print("Query 1:")
         print("Users: ", count_results[0])
         print("Activities: ", count_results[1])
         print("TrackPoints: ", count_results[2])
+        self.dotted_line()
 
     def query2(self):
         query = """SELECT activities.count / users.count
@@ -31,7 +33,9 @@ class QueryOperator:
             (SELECT COUNT(*) AS count FROM User) AS users"""
         self.cursor.execute(query)
         res = self.cursor.fetchall()[0][0]
+        print("Query 2:")
         print("Average activities per user: ", round(res, 0))
+        self.dotted_line()
 
     def query3(self):
         query = """SELECT user_id, COUNT(id) AS the_count 
@@ -41,7 +45,7 @@ class QueryOperator:
             LIMIT 20"""
         self.cursor.execute(query)
         res = self.cursor.fetchall()
-        print("Top 20 users with highest number of activities")
+        print("Query 3: Top 20 users with highest number of activities")
         print(tabulate(res, ["UserID", "#Activites"]))
 
     def query4(self):
@@ -49,7 +53,9 @@ class QueryOperator:
             WHERE transportation_mode = 'taxi'"""
         self.cursor.execute(query)
         res = self.cursor.fetchall()
-        print(tabulate(res, ["Users who have taken a taxi"]))
+        print("Query 4: Users who have taken a taxi")
+        print(tabulate(res, ["UserID"]))
+        self.dotted_line()
 
     def query5(self):
         query = """SELECT transportation, COUNT(id) AS count 
@@ -61,7 +67,8 @@ class QueryOperator:
         self.cursor.execute(query)
         res = self.cursor.fetchall()
         print("Query 5: Transportation mode and number of activities with this transportation mode")
-        print(tabulate(res, ["Transportation mode", "#Activity"]))
+        print(tabulate(res, ["Transportation mode", "#Activities"]))
+        self.dotted_line()
 
     def query6a(self):
         query = """SELECT EXTRACT(YEAR FROM start_date_time) AS years, COUNT(*) AS nrActivities 
@@ -72,7 +79,9 @@ class QueryOperator:
         LIMIT 1"""
         self.cursor.execute(query)
         res = self.cursor.fetchall()
-        print(tabulate(res, ["Year with most activities", "nrActivities"]))
+        print("Query 6a: Year with most activities")
+        print(tabulate(res, ["Year", "#Activities"]))
+        self.dotted_line()
 
 
     def query6b(self):
@@ -84,7 +93,9 @@ class QueryOperator:
         LIMIT 1"""
         self.cursor.execute(query)
         res = self.cursor.fetchall()
-        print(tabulate(res, ["Year with most hours in activity", "Hours"]))
+        print("Query 6b: Year with most hours in activity")
+        print(tabulate(res, ["Year", "Hours"]))
+        self.dotted_line()
 
     def query7(self):
         total_distance = 0
@@ -110,22 +121,38 @@ class QueryOperator:
             res = self.cursor.fetchall()
             for i in range(0, len(res)-1):
                 total_distance += haversine(res[i], res[i+1], unit='km')
+        print("Query 7:")
         print("Total distance: ", round(total_distance, 1), "km")
+        self.dotted_line()
      
     def query8(self):
         query = ""
+        print("Query 8:")
+        self.dotted_line()
 
     def query9(self):
         query = ""
+        print("Query 9:")
+        self.dotted_line()
 
     def query10(self):
-        query = ""
+        query = """SELECT user_id, lat, lon 
+        FROM Activity JOIN TrackPoint ON Activity.id = TrackPoint.activity_id 
+        WHERE lat >= 39.916000 AND lat <= 39.916999 
+        AND lon >= 116.397000 AND lon <= 116.397999 
+        """
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print("Query 10: Users who have tracked an activity in the forbidden city of Beijing")
+        print(tabulate(res, ["User", "Latitude", "Longitude"]))
+        self.dotted_line()
 
     def query11(self):
         #finding the users that have tm labels
         id_query = """SELECT DISTINCT user_id FROM Activity 
             WHERE transportation_mode IS NOT NULL ORDER BY user_id"""
         
+        #finding a given users mosted used tm
         query = """SELECT user_id, transportation_mode, count(transportation_mode) as count 
             FROM Activity 
             WHERE transportation_mode IS NOT NULL 
@@ -134,27 +161,33 @@ class QueryOperator:
             ORDER BY user_id, count DESC
             LIMIT 1""" 
         
-        
         self.cursor.execute(id_query)
         id = self.cursor.fetchall()
-
         ids = list(map(lambda x: x[0], id))
+
+        print("Query 11: Most used transportation mode per user")
         print("Format: [user_id, transportation_mode, times used]")
         for item in ids:
             self.cursor.execute(query % item[0:])
             res = self.cursor.fetchall()
             print(res)
+        self.dotted_line()
+
+    def dotted_line(self):
+        print("\n" + "*******************************" + "\n")
 
     def main(self):
-        # self.query1()
-        # self.query2()
-        # self.query3()
-        #self.query4()
-        #self.query5()
-        #self.query6a()
-        #self.query6b()
-        #self.query7()
-        #self.query8()
+        self.query1()
+        self.query2()
+        self.query3()
+        self.query4()
+        self.query5()
+        self.query6a()
+        self.query6b()
+        self.query7()
+        self.query8()
+        self.query9()
+        self.query10()
         self.query11()
 
 if __name__ == "__main__":
