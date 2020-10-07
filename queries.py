@@ -34,8 +34,8 @@ class QueryOperator:
         print("Average activities per user: ", round(res, 0))
 
     def query3(self):
-        query = """SELECT user_id, COUNT(id) AS the_count
-            FROM Activity
+        query = """SELECT user_id, COUNT(id) AS the_count 
+            FROM Activity 
             GROUP BY user_id
             ORDER BY the_count DESC
             LIMIT 20"""
@@ -45,7 +45,7 @@ class QueryOperator:
         print(tabulate(res, ["UserID", "#Activites"]))
 
     def query4(self):
-        query = """SELECT DISTINCT user_id FROM Activity
+        query = """SELECT DISTINCT user_id FROM Activity 
             WHERE transportation_mode = 'taxi'"""
         self.cursor.execute(query)
         res = self.cursor.fetchall()
@@ -57,53 +57,12 @@ class QueryOperator:
     def query6(self):
         query = ""
 
-    """7. Find the total distance ( in km) ​walked​ in 2008, by user with id = 112."""
-
-    def query7(self):
-        total_distance = 0
-
-        # First write query to fetch all activity_ids for the given user
-        id_query = """
-                    SELECT ID
-                    FROM Activity
-                    WHERE user_id = '112' AND start_date_time LIKE '2008%' 
-                    AND end_date_time LIKE '2008%' AND transportation_mode = 'walk'
-        """
-        self.cursor.execute(id_query)
-        activity_ids = self.cursor.fetchall()
-        # Map IDs to a normal python list
-        activity_ids = list(map(lambda x: x[0], activity_ids))
-
-        # Execute a query for each acitivity_id and calculate distance from first trackpoint to last
-        for id in activity_ids[:len(activity_ids)-2]:
-            query = """
-            SELECT lat, lon FROM TrackPoint WHERE activity_id=%s
-            """
-            self.cursor.execute(query % id)
-            res = self.cursor.fetchall()
-            for i in range(0, len(res)-1):
-                total_distance += haversine(res[i], res[i+1], unit='km')
-        print("Total distance: ", round(total_distance, 1), "km")
-
-    def query8(self):
-        query = """
-                SELECT User.id, Total
-                FROM User JOIN Activity ON User.id = Activity.user_id 
-                    JOIN TrackPoint ON TrackPoint.activity_id = Activity.id
-                WHERE altitude != -777
-                GROUP BY User.id
-        """
-        self.cursor.execute(query)
-        res = self.cursor.fetchall()
-        print(tabulate(res, ["UserID", "SUM(Altitude)"]))
-
     def main(self):
         # self.query1()
         # self.query2()
         # self.query3()
         # self.query4()
-        # self.query7()
-        self.query8()
+        self.query5()
 
 
 if __name__ == "__main__":
