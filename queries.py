@@ -57,6 +57,32 @@ class QueryOperator:
     def query6(self):
         query = ""
 
+    def query7(self):
+        total_distance = 0
+
+        # First write query to fetch all activity_ids for the given user
+        id_query = """
+                    SELECT ID
+                    FROM Activity
+                    WHERE user_id = '112' AND start_date_time LIKE '2008%' 
+                    AND end_date_time LIKE '2008%' AND transportation_mode = 'walk'
+        """
+        self.cursor.execute(id_query)
+        activity_ids = self.cursor.fetchall()
+        # Map IDs to a normal python list
+        activity_ids = list(map(lambda x: x[0], activity_ids))
+
+        # Execute a query for each acitivity_id and calculate distance from first trackpoint to last
+        for id in activity_ids[:len(activity_ids)-2]:
+            query = """
+            SELECT lat, lon FROM TrackPoint WHERE activity_id=%s
+            """
+            self.cursor.execute(query % id)
+            res = self.cursor.fetchall()
+            for i in range(0, len(res)-1):
+                total_distance += haversine(res[i], res[i+1], unit='km')
+        print("Total distance: ", round(total_distance, 1), "km")
+
     def main(self):
         # self.query1()
         # self.query2()
