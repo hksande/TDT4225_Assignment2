@@ -52,10 +52,39 @@ class QueryOperator:
         print(tabulate(res, ["Users who have taken a taxi"]))
 
     def query5(self):
-        query = ""
+        query = """SELECT transportation, COUNT(id) AS count 
+            FROM (
+                SELECT transportation_mode as transportation, id FROM Activity 
+                WHERE transportation_mode IS NOT NULL 
+            ) AS alias
+            GROUP BY transportation"""
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print("Query 5: Transportation mode and number of activities with this transportation mode")
+        print(tabulate(res, ["Transportation mode", "#Activity"]))
 
-    def query6(self):
-        query = ""
+    def query6a(self):
+        query = """SELECT EXTRACT(YEAR FROM start_date_time) AS years, COUNT(*) AS nrActivities 
+        FROM Activity 
+        WHERE EXTRACT(YEAR FROM start_date_time) >= 2000
+        GROUP BY years 
+        ORDER BY nrActivities DESC
+        LIMIT 1"""
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print(tabulate(res, ["Year with most activities", "nrActivities"]))
+
+
+    def query6b(self):
+        query = """SELECT EXTRACT(YEAR FROM start_date_time) AS activity_year, SUM(TIMESTAMPDIFF(HOUR, start_date_time, end_date_time)) AS hours
+        FROM Activity 
+        WHERE EXTRACT(YEAR FROM start_date_time) >= 2000
+        GROUP BY EXTRACT(YEAR FROM start_date_time)
+        ORDER BY hours DESC
+        LIMIT 1"""
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+        print(tabulate(res, ["Year with most hours in activity", "Hours"]))
 
     def query7(self):
         total_distance = 0
@@ -82,6 +111,16 @@ class QueryOperator:
             for i in range(0, len(res)-1):
                 total_distance += haversine(res[i], res[i+1], unit='km')
         print("Total distance: ", round(total_distance, 1), "km")
+
+     
+      def query11(self):
+        query = """SELECT user_id, transportation_mode, count(transportation_mode) as count 
+        FROM Activity 
+        WHERE transportation_mode IS NOT NULL 
+        GROUP BY user_id, transportation_mode
+        ORDER BY user_id, count DESC""" 
+        #får dataen jeg trenger sortert for å kunne se det manuelt, 
+        # men ikke funnet en måte å hente ut tm med høyest count per user_id
 
     def main(self):
         # self.query1()
