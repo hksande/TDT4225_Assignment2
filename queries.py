@@ -111,24 +111,51 @@ class QueryOperator:
             for i in range(0, len(res)-1):
                 total_distance += haversine(res[i], res[i+1], unit='km')
         print("Total distance: ", round(total_distance, 1), "km")
-
      
-      def query11(self):
+    def query8(self):
+        query = ""
+
+    def query9(self):
+        query = ""
+
+    def query10(self):
+        query = ""
+
+    def query11(self):
+        #finding the users that have tm labels
+        id_query = """SELECT DISTINCT user_id FROM Activity 
+            WHERE transportation_mode IS NOT NULL ORDER BY user_id"""
+        
         query = """SELECT user_id, transportation_mode, count(transportation_mode) as count 
-        FROM Activity 
-        WHERE transportation_mode IS NOT NULL 
-        GROUP BY user_id, transportation_mode
-        ORDER BY user_id, count DESC""" 
-        #får dataen jeg trenger sortert for å kunne se det manuelt, 
-        # men ikke funnet en måte å hente ut tm med høyest count per user_id
+            FROM Activity 
+            WHERE transportation_mode IS NOT NULL 
+            AND user_id = %s
+            GROUP BY user_id, transportation_mode
+            ORDER BY user_id, count DESC
+            LIMIT 1""" 
+        
+        
+        self.cursor.execute(id_query)
+        id = self.cursor.fetchall()
+
+        ids = list(map(lambda x: x[0], id))
+        print("Format: [user_id, transportation_mode, times used]")
+        for item in ids:
+            self.cursor.execute(query % item[0:])
+            res = self.cursor.fetchall()
+            print(res)
 
     def main(self):
         # self.query1()
         # self.query2()
         # self.query3()
-        # self.query4()
-        self.query5()
-
+        #self.query4()
+        #self.query5()
+        #self.query6a()
+        #self.query6b()
+        #self.query7()
+        #self.query8()
+        self.query11()
 
 if __name__ == "__main__":
     try:
