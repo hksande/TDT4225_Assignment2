@@ -126,13 +126,41 @@ class QueryOperator:
         self.dotted_line()
      
     def query8(self):
-        query = ""
+        query = """SELECT Sub.UserID, Sub.AltitudeGained 
+            FROM ( 
+                SELECT Activity.user_id AS userID, 
+                       SUM(CASE WHEN TP1.altitude IS NOT NULL AND TP2.altitude IS NOT NULL 
+                       THEN (TP2.altitude - TP1.altitude) * 0.0003048 ELSE 0 END) AS AltitudeGained 
+                FROM   TrackPoint AS TP1 INNER JOIN TrackPoint AS TP2 ON TP1.activity_id=TP2.activity_id AND 
+                       TP1.id+1 = TP2.id INNER JOIN Activity ON Activity.id = TP1.activity_id AND Activity.id = TP2.activity_id 
+                WHERE  TP2.altitude > TP1.altitude 
+                GROUP  BY Activity.user_id 
+                ) AS Sub 
+            ORDER BY AltitudeGained DESC LIMIT 20
+            """
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+
         print("Query 8:")
+        print(tabulate(res, headers=self.cursor.column_names) + "\n")
         self.dotted_line()
 
     def query9(self):
-        query = ""
+        query = """
+            SELECT Activity.user_id, COUNT(DISTINCT(ActivityID)) as 'Number of invalid activities' 
+            FROM (
+                SELECT TP1.activity_id AS ActivityID, (TP2.date_days - TP1.date_days) AS MinuteDiff 
+                FROM TrackPoint AS TP1 INNER JOIN TrackPoint AS TP2 
+                     ON TP1.activity_id=TP2.activity_id AND TP1.id+1=TP2.id 
+                     HAVING MinuteDiff >= 0.00347222
+                  ) AS Subtable INNER JOIN Activity ON Activity.id = Subtable.ActivityID 
+            GROUP BY Activity.user_id
+            """
+        self.cursor.execute(query)
+        res = self.cursor.fetchall()
+
         print("Query 9:")
+        print(tabulate(res, headers=self.cursor.column_names) + "\n")
         self.dotted_line()
 
     def query10(self):
